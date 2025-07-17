@@ -1,96 +1,149 @@
-# Automating S3 with Lambda Hands-On Lab
 
-This project demonstrates how to automate the validation and management of CSV files uploaded to an Amazon S3 bucket using an AWS Lambda function written in Python. The Lambda function checks each row of the uploaded CSV for data quality and moves files with errors to a designated error bucket.
+```markdown
+📂 Automating S3 with Lambda
 
-## Features
+A hands-on AWS Lambda project that validates `.csv` files uploaded to an S3 bucket. If the file fails validation, it's automatically moved to an error bucket for review — a simple and efficient serverless workflow for file validation pipelines.
 
-- **Automatic S3 Trigger:** Lambda is triggered when a new CSV file is uploaded to the billing bucket.
-- **Row Validation:** Each row is checked for:
-  - Valid product lines (`Bakery`, `Meat`, `Dairy`)
-  - Valid currencies (`USD`, `MXN`, `CAD`)
-  - Non-negative bill amounts
-  - Correct date format (`YYYY-MM-DD`)
-- **Error Handling:** If any row fails validation, the file is moved to an error bucket and deleted from the original bucket.
-- **Logging:** Prints detailed error messages for invalid rows.
+---
 
-## Directory Structure
+🧠 Overview
 
-```
-Automating_S3_with_Lambda_HOL/
-│
-├── BillingBucketParser/
-│   ├── lambda_function.py   # Main Lambda handler and logic
-│   └── event.json           # Sample event for local testing (if present)
-|   └── template.yaml        # Defines Lambda function
-├── README.md                # This file
-```
+This project demonstrates how to:
 
-## Getting Started
+- Use AWS Lambda to process and validate `.csv` files
+- Read S3 events to trigger Lambda functions
+- Apply validation logic to file contents
+- Move invalid files to a separate S3 error bucket
+- Set up and test Lambda functions locally using SAM (Serverless Application Model)
 
-### Prerequisites
+---
 
-- AWS account with S3 and Lambda permissions
+📋 Features
+
+- ✅ Validates product line, currency, bill amount, and date fields
+- ⚙️ Built with Python 3.12 and Boto3
+- ☁️ Runs on AWS Lambda, triggered by S3 events
+- 🔄 Automatically deletes invalid files from the source bucket
+- 🧪 Includes local testing setup using `sam local invoke`
+
+---
+
+📁 Folder Structure
+
+.
+├── lambda\_function.py      # Main Lambda code
+├── template.yaml           # SAM template for local testing
+├── event.json              # Sample S3 event trigger
+├── test\_data/              # Sample CSV files for testing
+└── README.md               # You're here
+
+````
+
+---
+
+### 🚀 Getting Started
+
+### 1. Prerequisites
+
+- AWS CLI configured
+- AWS Toolkit for VS Code (recommended)
 - Python 3.12
-- [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) library
-- AWS SAM CLI (for local testing)
+- Docker (for local testing)
+- SAM CLI
 
-### Setup
+### 2. Clone the Repo
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/<your-username>/<repo-name>.git
-    cd Automating_S3_with_Lambda_HOL
-    ```
+```bash
+git clone https://github.com/nmihaly/Automating_S3_with_Lambda.git
+cd Automating_S3_with_Lambda
+````
 
-2. **Install dependencies:**
-    ```bash
-    pip install boto3
-    ```
+### 3. Set Up Resources
 
-3. **Deploy the Lambda function using AWS SAM or manually upload the code to AWS Lambda.**
-   AWS Toolkit --> Upload Lambda
+Create two S3 buckets:
 
-### Local Testing
+* `billing-2025` – upload bucket
+* `billing-errors-2025` – error bucket
 
-You can test the Lambda function locally using AWS SAM:
+Upload a test `.csv` to the upload bucket before testing.
+
+---
+
+## 🧪 Local Testing (SAM)
+
+### Edit `event.json` with your S3 bucket and file name:
+
+```json
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": { "name": "billing-2025" },
+        "object": { "key": "billing_data_meat_may_2023.csv" }
+      }
+    }
+  ]
+}
+```
+
+### Run the test:
 
 ```bash
 sam local invoke -e event.json
 ```
 
-Where `event.json` is a sample S3 event.
-
-## Lambda Function Overview
-
-The Lambda function (`BillingBucketParser/lambda_function.py`) performs the following steps:
-
-1. Downloads the uploaded CSV file from the S3 bucket.
-2. Validates each row for product line, currency, bill amount, and date format.
-3. If any row is invalid, moves the file to the error bucket and deletes it from the original bucket.
-4. Logs errors and returns a status message.
-
-## Example CSV Row
-
-A valid row should look like:
+Expected output (if validation fails):
 
 ```
-...,Bakery,...,2025-07-15,USD,100.00,...
+Error in record 11: Date 5/11/2023 is not in the correct format (YYYY-MM-DD).
+Moved erroneous file to: billing-errors-2025.
+Deleted original file from bucket.
 ```
-
-## Permissions
-
-Ensure your Lambda execution role has the following S3 permissions for both the billing and error buckets:
-
-- `s3:GetObject`
-- `s3:PutObject`
-- `s3:DeleteObject`
-- `s3:CopyObject`
-
-## License
-
-MIT License
 
 ---
 
-**Note:**  
-This project is intended for educational purposes as part of a hands-on lab for automating S3 workflows
+## 📌 Validation Rules
+
+Each row is checked for:
+
+* ✅ **Valid product line**: Must be one of `['Bakery', 'Meat', 'Dairy']`
+* 💵 **Valid currency**: `USD`, `CAD`, or `MXN`
+* 💰 **Non-negative bill amount**
+* 📅 **Date format**: Must be `YYYY-MM-DD`
+
+Files that fail validation are copied to the error bucket and deleted from the source.
+
+---
+
+## ⚡ Deploy to AWS
+
+1. Upload the Lambda code using the AWS Toolkit
+2. In the Lambda console, attach the `AmazonS3FullAccess` policy to your execution role *(for testing only)*
+3. Add an S3 trigger:
+
+   * Source: `billing-2025`
+   * Event type: `PUT`
+
+Now every `.csv` uploaded to `billing-2025` will trigger the Lambda function automatically.
+
+---
+
+## 🛠 Example Use Cases
+
+* Financial document validation pipelines
+* Real-time ingestion validation for SaaS billing tools
+* Preprocessing raw data before analytics workflows
+
+---
+
+## 📄 License
+
+MIT License — free to use, modify, and distribute.
+
+---
+
+## 🤝 Let's Connect
+
+Have ideas to extend this? Need help with Lambda, S3, or Python on AWS?
+
+Feel free to connect on [LinkedIn](https://www.linkedin.com/in/nmihaly) or open an issue!
